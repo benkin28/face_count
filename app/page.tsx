@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import CameraPreview from "./components/CameraPreview";
-import { sendFrameToBackend } from "./util/sendFrameToBackend";
+import { connectToBackendWebSocket } from "./util/sendFrameToBackend";
 export default function Home() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -25,18 +25,31 @@ export default function Home() {
     }
   }
 
-  useEffect(() => {
-    if (!videoRef.current) return;
+useEffect(() => {
+  if (!videoRef.current) return;
+  let ws: WebSocket | null = null;
+  let mounted = true;
 
-    const interval = setInterval(() => {
-      sendFrameToBackend(videoRef.current, (count) => {
-        setPeopleCount(count); // 👈 update UI with count
-        console.log("People count:", count);
-      });
-    }, 3000);
+  connectToBackendWebSocket(videoRef.current, (count) => {
+    setPeopleCount(count);
+  })
+    .then((socket) => {
+      if (!mounted) {
+        socket.close();
+        return;
+      }
+      ws = socket;
+    })
+    .catch((err) => {
+      console.error("WebSocket connection failed:", err);
+    });
 
-    return () => clearInterval(interval);
-  }, [videoRef]);
+  return () => {
+    mounted = false;
+    if (ws) ws.close();
+  };
+}, [videoRef]);
+
 
   // 🧹 Clean up stream on unmount
   useEffect(() => {
