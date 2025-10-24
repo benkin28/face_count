@@ -3,6 +3,9 @@ import numpy as np
 from PIL import Image
 import base64
 import logging
+import asyncio
+
+from cv.people_detection import detect_people
 
 logger = logging.getLogger(__name__)
 
@@ -27,44 +30,20 @@ def receive_image_data(data_url: str) -> bytes:
         logger.error(f"Error parsing image data: {str(e)}")
         raise
 
-def process_image(image_data: bytes) -> dict:
+async def process_image(image_data: bytes) -> dict:
     """
-    Process the received image data and return analysis results
+    Process the received image data and return people count
     """
     try:
-        # Convert bytes to numpy array
-        nparr = np.frombuffer(image_data, np.uint8)
-        
-        # Decode image using OpenCV
-        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        
-        if image is None:
-            return {"error": "Failed to decode image"}
-        
-        # Get image dimensions
-        height, width, channels = image.shape
-        
-        # Convert to PIL Image for additional processing if needed
-        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        pil_image = Image.fromarray(image_rgb)
-        
-        # Basic image analysis
-        analysis = {
-            "width": width,
-            "height": height,
-            "channels": channels,
-            "format": "BGR" if channels == 3 else "GRAY",
-            "size_bytes": len(image_data),
-            "success": True
-        }
-        
-        return analysis
+        # Use people detection function
+        result = await detect_people(image_data)
+        return result
         
     except Exception as e:
         logger.error(f"Error processing image: {str(e)}")
-        return {"error": f"Image processing failed: {str(e)}", "success": False}
+        return {"people_count": 0, "error": f"Image processing failed: {str(e)}"}
 
-def analyze_image_from_data_url(data_url: str) -> dict:
+async def analyze_image_from_data_url(data_url: str) -> dict:
     """
     Complete image analysis pipeline from data URL
     """
@@ -73,9 +52,9 @@ def analyze_image_from_data_url(data_url: str) -> dict:
         image_bytes = receive_image_data(data_url)
         
         # Process the image
-        result = process_image(image_bytes)
+        result = await process_image(image_bytes)
         
         return result
     except Exception as e:
         logger.error(f"Error in image analysis pipeline: {str(e)}")
-        return {"error": f"Image analysis failed: {str(e)}", "success": False}
+        return {"people_count": 0, "error": f"Image analysis failed: {str(e)}"}
