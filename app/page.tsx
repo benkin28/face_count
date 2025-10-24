@@ -7,6 +7,7 @@ export default function Home() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [peopleCount, setPeopleCount] = useState<number | null>(null);
 
   async function startCamera() {
     setError(null);
@@ -28,11 +29,11 @@ export default function Home() {
     if (!videoRef.current) return;
 
     const interval = setInterval(() => {
-      sendFrameToBackend(videoRef.current, (peopleCount) => {
-        console.log("People count:", peopleCount);
-      }
-      );
-    }, 3000); // every 3 seconds
+      sendFrameToBackend(videoRef.current, (count) => {
+        setPeopleCount(count); // 👈 update UI with count
+        console.log("People count:", count);
+      });
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [videoRef]);
@@ -56,6 +57,17 @@ export default function Home() {
         stream={stream}
         setStream={setStream}
       />
+      <div className="mt-6 p-4 rounded-2xl bg-white/80 shadow-md dark:bg-zinc-900">
+        {error ? (
+          <p className="text-red-500 font-medium">Error: {error}</p>
+        ) : peopleCount !== null ? (
+          <p className="text-3xl font-semibold text-zinc-800 dark:text-white">
+            👥 People detected: <span className="text-blue-600">{peopleCount}</span>
+          </p>
+        ) : (
+          <p className="text-zinc-500 italic">Detecting people...</p>
+        )}
+      </div>
 
     </div>
   );
