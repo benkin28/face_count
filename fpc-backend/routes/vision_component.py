@@ -26,7 +26,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 logger.info(f"Received data URL: {len(data_url)} characters")
                 
                 # Analyze image using vision service
-                result = analyze_image_from_data_url(data_url)
+                result = await analyze_image_from_data_url(data_url)
                 
                 # Send back the analysis result
                 await websocket.send_text(json.dumps({
